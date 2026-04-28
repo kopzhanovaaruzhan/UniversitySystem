@@ -3,6 +3,7 @@ package models;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+//import java.util.Map;
 
 public class Course implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -10,6 +11,9 @@ public class Course implements Serializable {
     private String courseCode;
     private String name;
     private int credits;
+    
+    private int maxStudent;
+    //private Map<Student, List<Mark>> gradebook;
     
     private List<Student> students;
     private List<Teacher> teachers;
@@ -27,8 +31,10 @@ public class Course implements Serializable {
     }
 
     public void addStudent(Student s) {
-        if (!students.contains(s)) {
+    		if (!students.contains(s) && students.size() < maxStudent) {
             students.add(s);
+        } else {
+            System.out.println("Course is full");
         }
     }
 

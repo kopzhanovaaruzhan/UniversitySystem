@@ -97,8 +97,10 @@ public class MainView extends BaseView {
 
         if (currentUser instanceof Admin && choice.equals("3")) {
             Admin admin = (Admin) currentUser;
-            System.out.println("Type (student/teacher/manager):");
+            
+            System.out.println("Type (student/graduate/teacher/manager/techsupport):"); 
             String type = reader.readLine();
+            
             System.out.println("Name:");
             String name = reader.readLine();
             System.out.println("Login:");
@@ -111,7 +113,9 @@ public class MainView extends BaseView {
             if (newUser != null) {
                 DBContext.addUser(newUser);
                 DBContext.save();
-                successMsg("User " + name + " registered successfully via Factory!");
+                successMsg("User " + name + " (" + type + ") registered successfully via Factory!");
+            } else {
+                System.out.println("Error: Unknown user type.");
             }
         }
         
