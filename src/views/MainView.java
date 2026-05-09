@@ -2,6 +2,7 @@ package views;
 
 import java.io.IOException;
 import core.DBContext;
+import enums.Language;
 import models.*;
 
 public class MainView extends BaseView {
@@ -125,8 +126,8 @@ public class MainView extends BaseView {
     }
 
     private static void welcomeMsg() {
-        System.out.println("================================");
-        System.out.println("   UNIVERSITY MANAGEMENT SYSTEM ");
-        System.out.println("================================");
+        System.out.println("   UNIVERSITY MANAGEMENT SYSTEM: ");
+        System.out.println("");
+
     }
 }

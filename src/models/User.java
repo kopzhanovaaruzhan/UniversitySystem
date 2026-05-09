@@ -3,6 +3,8 @@ package models;
 import java.io.Serializable;
 import java.util.Objects;
 
+import enums.Language;
+
 
 public abstract class User implements UserComponent, Serializable {
     private static final long serialVersionUID = 1L;

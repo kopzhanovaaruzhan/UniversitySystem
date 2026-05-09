@@ -1,5 +1,8 @@
 package models;
 
+import enums.GraduateLevel;
+import enums.TeacherType;
+
 //import core.DBContext;
 
 public class Admin extends Employee implements UserFactory {

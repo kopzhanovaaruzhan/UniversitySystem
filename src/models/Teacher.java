@@ -1,5 +1,7 @@
 package models;
 
+import enums.TeacherType;
+
 public class Teacher extends Employee {
     private static final long serialVersionUID = 1L;
 	private TeacherType type;

@@ -1,5 +1,7 @@
 package models;
 
+import enums.GraduateLevel;
+
 public class GraduateStudent extends Student {
 	private static final long serialVersionUID = 1L;
 
