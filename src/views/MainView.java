@@ -7,6 +7,7 @@ import models.*;
 
 public class MainView extends BaseView {
     private static User currentUser = null;
+    private static Language currentSessionLang = Language.ENG;
 
     public static void run() throws IOException {
         welcomeMsg();
@@ -19,25 +20,33 @@ public class MainView extends BaseView {
             }
         }
     }
+    
+    // Вспомогательный метод для сообщений, когда пользователь еще не залогинен
+    private static String getStaticMsg(String eng, String rus, String kaz) {
+        if (currentSessionLang == Language.RUS) return rus;
+        if (currentSessionLang == Language.KAZ) return kaz;
+        return eng;
+    }
 
     private static void showAuthMenu() throws IOException {
-        System.out.println("\n1 - Login");
-        System.out.println("2 - Exit");
+        System.out.println("\n1 - " + getStaticMsg("Login", "Войти", "Кіру"));
+        System.out.println("2 - " + getStaticMsg("Exit", "Выйти", "Шығу"));
         
         String choice = reader.readLine();
         if (choice.equals("1")) {
             loginProcess();
         } else {
-            System.out.println("Goodbye!");
+            System.out.println(getStaticMsg("Goodbye!", "До свидания!", "Сау болыңыз!"));
             DBContext.save();
             System.exit(0);
         }
     }
 
     private static void loginProcess() throws IOException {
-        System.out.print("Username: ");
+        // ТЕПЕРЬ И ЭТИ ПОЛЯ НА ТРЕХ ЯЗЫКАХ
+        System.out.print(getStaticMsg("Username: ", "Имя пользователя: ", "Пайдаланушы аты: "));
         String login = reader.readLine();
-        System.out.print("Password: ");
+        System.out.print(getStaticMsg("Password: ", "Пароль: ", "Құпия сөз: "));
         String pass = reader.readLine();
 
         currentUser = DBContext.getUsers().stream()
@@ -46,33 +55,37 @@ public class MainView extends BaseView {
                 .orElse(null);
 
         if (currentUser != null) {
-            successMsg("Welcome, " + currentUser.getName() + "!");
+            // Тихая синхронизация языка сессии с объектом юзера
+            currentUser.switchLanguage(currentSessionLang); 
+            
+            String welcome = currentUser.getLanguageMessage("Welcome", "Добро пожаловать", "Қош келдіңіз");
+            successMsg(welcome + ", " + currentUser.getName() + "!");
         } else {
-            System.out.println("Error: Invalid credentials.");
+            System.out.println(getStaticMsg(
+                "Error: Invalid credentials.", 
+                "Ошибка: Неверные данные.", 
+                "Қате: Мәліметтер дұрыс емес."
+            ));
         }
     }
 
     private static void showRoleMenu() throws IOException {
-        String msg = currentUser.getLanguageMessage(
-            "\nLogged in as: ", 
-            "\nВы вошли как: ", 
-            "\nЖүйеге кірдіңіз: "
-        );
-        System.out.println(msg + currentUser.getClass().getSimpleName());
+        String loggedMsg = currentUser.getLanguageMessage("\nLogged in as: ", "\nВы вошли как: ", "\nЖүйеге кірдіңіз: ");
+        System.out.println(loggedMsg + currentUser.getClass().getSimpleName());
 
-        System.out.println("1 - Switch Language (" + currentUser.getCurrentLanguage() + ")");
-        System.out.println("2 - View News");
+        System.out.println("1 - " + currentUser.getLanguageMessage("Switch Language", "Сменить язык", "Тілді өзгерту") + " (" + currentUser.getCurrentLanguage() + ")");
+        System.out.println("2 - " + currentUser.getLanguageMessage("View News", "Посмотреть новости", "Жаңалықтарды көру"));
         
         if (currentUser instanceof Admin) {
-            System.out.println("3 - Register New User (Factory)");
-            System.out.println("4 - View All Users");
+            System.out.println("3 - " + currentUser.getLanguageMessage("Register New User", "Зарегистрировать пользователя", "Пайдаланушыны тіркеу"));
+            System.out.println("4 - " + currentUser.getLanguageMessage("View All Users", "Список всех пользователей", "Барлық пайдаланушылар тізімі"));
         } else if (currentUser instanceof Teacher) {
-            System.out.println("3 - Put Mark");
+            System.out.println("3 - " + currentUser.getLanguageMessage("Put Mark", "Поставить оценку", "Баға қою"));
         } else if (currentUser instanceof Student) {
-            System.out.println("3 - View Transcript");
+            System.out.println("3 - " + currentUser.getLanguageMessage("View Transcript", "Посмотреть транскрипт", "Транскриптті көру"));
         }
         
-        System.out.println("0 - Logout");
+        System.out.println("0 - " + currentUser.getLanguageMessage("Logout", "Выйти", "Шығу"));
 
         String choice = reader.readLine();
         handleChoice(choice);
@@ -83,30 +96,56 @@ public class MainView extends BaseView {
             currentUser = null;
             return;
         }
+        
         if (choice.equals("1")) {
             System.out.println("Choose: 1-ENG, 2-RUS, 3-KAZ");
             String l = reader.readLine();
-            if(l.equals("1")) currentUser.switchLanguage(Language.ENG);
-            if(l.equals("2")) currentUser.switchLanguage(Language.RUS);
-            if(l.equals("3")) currentUser.switchLanguage(Language.KAZ);
+            if(l.equals("1")) currentSessionLang = Language.ENG;
+            else if(l.equals("2")) currentSessionLang = Language.RUS;
+            else if(l.equals("3")) currentSessionLang = Language.KAZ;
+            
+            if (currentUser != null) {
+                currentUser.switchLanguage(currentSessionLang); 
+            }
             return;
         }
-        /*if (choice.equals("2")) {
-            currentUser.viewNews();
-            return;
-        }*/
 
         if (currentUser instanceof Admin && choice.equals("3")) {
             Admin admin = (Admin) currentUser;
             
-            System.out.println("Type (student/graduate/teacher/manager/techsupport):"); 
-            String type = reader.readLine();
+            System.out.println(currentUser.getLanguageMessage(
+                "Select user type number:", 
+                "Выберите номер типа пользователя:", 
+                "Пайдаланушы түрінің нөмірін таңдаңыз:"
+            ));
             
-            System.out.println("Name:");
+            System.out.println("1 - Student");
+            System.out.println("2 - Graduate Student");
+            System.out.println("3 - Teacher");
+            System.out.println("4 - Manager");
+            System.out.println("5 - Tech Support");
+
+            String typeChoice = reader.readLine();
+            String type = "";
+
+            switch (typeChoice) {
+                case "1": type = "student"; break;
+                case "2": type = "graduate"; break;
+                case "3": type = "teacher"; break;
+                case "4": type = "manager"; break;
+                case "5": type = "techsupport"; break;
+                default: 
+                    System.out.println(currentUser.getLanguageMessage("Invalid number!", "Неверный номер!", "Қате нөмір!")); 
+                    return;
+            }
+
+            System.out.print(currentUser.getLanguageMessage("Name: ", "Имя: ", "Аты: "));
             String name = reader.readLine();
-            System.out.println("Login:");
+            
+            System.out.print(currentUser.getLanguageMessage("Login: ", "Логин: ", "Логин: "));
             String log = reader.readLine();
-            System.out.println("Password:");
+            
+            System.out.print(currentUser.getLanguageMessage("Password: ", "Пароль: ", "Құпия сөз: "));
             String pass = reader.readLine();
 
             User newUser = admin.createUser(type, "ID-" + (DBContext.getUsers().size() + 1), name, log, pass);
@@ -114,9 +153,8 @@ public class MainView extends BaseView {
             if (newUser != null) {
                 DBContext.addUser(newUser);
                 DBContext.save();
-                successMsg("User " + name + " (" + type + ") registered successfully via Factory!");
-            } else {
-                System.out.println("Error: Unknown user type.");
+                String success = currentUser.getLanguageMessage("registered successfully!", "зарегистрирован успешно!", "сәтті тіркелді!");
+                successMsg(name + " " + success);
             }
         }
         
@@ -126,8 +164,15 @@ public class MainView extends BaseView {
     }
 
     private static void welcomeMsg() {
-        System.out.println("   UNIVERSITY MANAGEMENT SYSTEM: ");
-        System.out.println("");
-
+        System.out.println("\n" + getStaticMsg(
+            "   UNIVERSITY MANAGEMENT SYSTEM: ", 
+            "   СИСТЕМА УПРАВЛЕНИЯ УНИВЕРСИТЕТОМ: ", 
+            "   УНИВЕРСИТЕТТІ БАСҚАРУ ЖҮЙЕСІ: "
+        ));
+        System.out.println("---------------------------------");
     }
 }
+
+
+
+

@@ -1,9 +1,13 @@
 package models;
 
+import enums.ManagerType;
+
 //import core.DBContext;
 
 public class Manager extends Employee {
     private static final long serialVersionUID = 1L;
+    private ManagerType type;
+    
     public Manager(String id, String name, String login, String password, double salary) {
         super(id, name, login, password, salary);
     }
