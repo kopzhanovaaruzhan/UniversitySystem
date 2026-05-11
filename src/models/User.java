@@ -3,6 +3,8 @@ package models;
 import java.io.Serializable;
 import java.util.Objects;
 
+import enums.Language;
+
 
 public abstract class User implements UserComponent, Serializable {
     private static final long serialVersionUID = 1L;
@@ -33,7 +35,6 @@ public abstract class User implements UserComponent, Serializable {
 
     public void switchLanguage(Language lang) {
         this.currentLanguage = lang;
-        System.out.println(getLanguageMessage("Language changed", "Язык изменен", "Тіл өзгертілді"));
     }
 
     public boolean login(String login, String password) {

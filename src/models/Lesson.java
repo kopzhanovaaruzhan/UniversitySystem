@@ -2,6 +2,8 @@ package models;
 
 import java.util.Map;
 
+import enums.LessonType;
+
 public class Lesson {
     private int hours;
     private LessonType type;

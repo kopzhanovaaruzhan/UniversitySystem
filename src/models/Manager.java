@@ -1,9 +1,13 @@
 package models;
 
+import enums.ManagerType;
+
 //import core.DBContext;
 
 public class Manager extends Employee {
     private static final long serialVersionUID = 1L;
+    private ManagerType type;
+    
     public Manager(String id, String name, String login, String password, double salary) {
         super(id, name, login, password, salary);
     }
@@ -23,7 +27,7 @@ public class Manager extends Employee {
     } */
 
     public void approveRegistration(Student student, Course course) {
-        course.addStudent(student);
+        // Registration via Enrollment: student.registerForCourse(course, semester)
         System.out.println("Регистрация одобрена для " + student.getName());
     }
     public void createReport() {
