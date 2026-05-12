@@ -2,7 +2,7 @@ package views;
 
 import java.io.IOException;
 import core.DBContext;
-import enums.Language;
+import enums.*;
 import models.*;
 
 public class MainView extends BaseView {
@@ -11,167 +11,216 @@ public class MainView extends BaseView {
 
     public static void run() throws IOException {
         welcomeMsg();
-        
         while (true) {
-            if (currentUser == null) {
-                showAuthMenu();
-            } else {
-                showRoleMenu();
-            }
+            if (currentUser == null) showAuthMenu();
+            else routeToRoleView();
         }
     }
-    
-    // Вспомогательный метод для сообщений, когда пользователь еще не залогинен
-    private static String getStaticMsg(String eng, String rus, String kaz) {
+
+    private static String sm(String eng, String rus, String kaz) {
         if (currentSessionLang == Language.RUS) return rus;
         if (currentSessionLang == Language.KAZ) return kaz;
         return eng;
     }
 
+    // ─── Auth ─────────────────────────────────────────────────────────────────
+
     private static void showAuthMenu() throws IOException {
-        System.out.println("\n1 - " + getStaticMsg("Login", "Войти", "Кіру"));
-        System.out.println("2 - " + getStaticMsg("Exit", "Выйти", "Шығу"));
-        
+        System.out.println("\n1 - " + sm("Login","Войти","Кіру"));
+        System.out.println("2 - " + sm("Exit","Выйти","Шығу"));
         String choice = reader.readLine();
-        if (choice.equals("1")) {
-            loginProcess();
-        } else {
-            System.out.println(getStaticMsg("Goodbye!", "До свидания!", "Сау болыңыз!"));
-            DBContext.save();
-            System.exit(0);
-        }
+        if ("1".equals(choice)) loginProcess();
+        else { System.out.println(sm("Goodbye!","До свидания!","Сау болыңыз!")); DBContext.save(); System.exit(0); }
     }
 
     private static void loginProcess() throws IOException {
-        // ТЕПЕРЬ И ЭТИ ПОЛЯ НА ТРЕХ ЯЗЫКАХ
-        System.out.print(getStaticMsg("Username: ", "Имя пользователя: ", "Пайдаланушы аты: "));
+        System.out.print(sm("Username: ","Логин: ","Логин: "));
         String login = reader.readLine();
-        System.out.print(getStaticMsg("Password: ", "Пароль: ", "Құпия сөз: "));
+        System.out.print(sm("Password: ","Пароль: ","Пароль: "));
         String pass = reader.readLine();
 
         currentUser = DBContext.getUsers().stream()
-                .filter(u -> u.login(login, pass))
-                .findFirst()
-                .orElse(null);
+                .filter(u -> u.login(login, pass)).findFirst().orElse(null);
 
         if (currentUser != null) {
-            // Тихая синхронизация языка сессии с объектом юзера
-            currentUser.switchLanguage(currentSessionLang); 
-            
-            String welcome = currentUser.getLanguageMessage("Welcome", "Добро пожаловать", "Қош келдіңіз");
-            successMsg(welcome + ", " + currentUser.getName() + "!");
+            currentUser.switchLanguage(currentSessionLang);
+            successMsg(currentUser.getLanguageMessage("Welcome","Добро пожаловать","Қош келдіңіз")
+                + ", " + currentUser.getName() + "!");
         } else {
-            System.out.println(getStaticMsg(
-                "Error: Invalid credentials.", 
-                "Ошибка: Неверные данные.", 
-                "Қате: Мәліметтер дұрыс емес."
-            ));
+            System.out.println(sm("Error: Invalid credentials.","Ошибка: Неверные данные.","Қате мәліметтер."));
         }
     }
 
-    private static void showRoleMenu() throws IOException {
-        String loggedMsg = currentUser.getLanguageMessage("\nLogged in as: ", "\nВы вошли как: ", "\nЖүйеге кірдіңіз: ");
-        System.out.println(loggedMsg + currentUser.getClass().getSimpleName());
+    // ─── Role Routing ─────────────────────────────────────────────────────────
 
-        System.out.println("1 - " + currentUser.getLanguageMessage("Switch Language", "Сменить язык", "Тілді өзгерту") + " (" + currentUser.getCurrentLanguage() + ")");
-        System.out.println("2 - " + currentUser.getLanguageMessage("View News", "Посмотреть новости", "Жаңалықтарды көру"));
-        
-        if (currentUser instanceof Admin) {
-            System.out.println("3 - " + currentUser.getLanguageMessage("Register New User", "Зарегистрировать пользователя", "Пайдаланушыны тіркеу"));
-            System.out.println("4 - " + currentUser.getLanguageMessage("View All Users", "Список всех пользователей", "Барлық пайдаланушылар тізімі"));
-        } else if (currentUser instanceof Teacher) {
-            System.out.println("3 - " + currentUser.getLanguageMessage("Put Mark", "Поставить оценку", "Баға қою"));
-        } else if (currentUser instanceof Student) {
-            System.out.println("3 - " + currentUser.getLanguageMessage("View Transcript", "Посмотреть транскрипт", "Транскриптті көру"));
-        }
-        
-        System.out.println("0 - " + currentUser.getLanguageMessage("Logout", "Выйти", "Шығу"));
-
-        String choice = reader.readLine();
-        handleChoice(choice);
-    }
-
-    private static void handleChoice(String choice) throws IOException {
-        if (choice.equals("0")) {
+    private static void routeToRoleView() throws IOException {
+        if (currentUser instanceof Student) {
+            StudentView.show((Student) currentUser);
             currentUser = null;
-            return;
+        } else if (currentUser instanceof Admin) {
+            adminMenu();
+        } else if (currentUser instanceof Teacher) {
+            teacherMenu();
+        } else {
+            System.out.println("No menu for role: " + currentUser.getClass().getSimpleName());
+            currentUser = null;
         }
-        
-        if (choice.equals("1")) {
-            System.out.println("Choose: 1-ENG, 2-RUS, 3-KAZ");
-            String l = reader.readLine();
-            if(l.equals("1")) currentSessionLang = Language.ENG;
-            else if(l.equals("2")) currentSessionLang = Language.RUS;
-            else if(l.equals("3")) currentSessionLang = Language.KAZ;
-            
-            if (currentUser != null) {
-                currentUser.switchLanguage(currentSessionLang); 
-            }
-            return;
+    }
+
+    // ─── Admin Menu ───────────────────────────────────────────────────────────
+
+    private static void adminMenu() throws IOException {
+        String lu = currentUser.getLanguageMessage("\nLogged in as Admin: ","Вы вошли как Admin: ","Admin: ");
+        System.out.println(lu + currentUser.getName());
+        System.out.println("1 - " + currentUser.getLanguageMessage("Register New User","Зарег. пользователя","Пайд. тіркеу"));
+        System.out.println("2 - " + currentUser.getLanguageMessage("View All Users","Все пользователи","Барлық пайд."));
+        System.out.println("3 - " + currentUser.getLanguageMessage("View All Courses","Все курсы","Барлық курстар"));
+        System.out.println("4 - " + currentUser.getLanguageMessage("Switch Language","Сменить язык","Тілді ауыстыру")
+            + " (" + currentUser.getCurrentLanguage() + ")");
+        System.out.println("0 - " + currentUser.getLanguageMessage("Logout","Выйти","Шығу"));
+
+        Admin admin = (Admin) currentUser;
+        switch (reader.readLine()) {
+            case "1":
+                System.out.println("1-Student 2-Graduate 3-Teacher 4-Manager 5-TechSupport");
+                String typeChoice = reader.readLine();
+                String type;
+                switch (typeChoice) {
+                    case "1": type="student"; break; case "2": type="graduate"; break;
+                    case "3": type="teacher"; break; case "4": type="manager";  break;
+                    case "5": type="techsupport"; break;
+                    default: System.out.println("Invalid."); return;
+                }
+                System.out.print("Name: ");    String name = reader.readLine();
+                System.out.print("Login: ");   String log  = reader.readLine();
+                System.out.print("Password: ");String pw   = reader.readLine();
+                User nu = admin.createUser(type, "ID-"+(DBContext.getUsers().size()+1), name, log, pw);
+                if (nu != null) { DBContext.addUser(nu); DBContext.save(); successMsg(name + " registered."); }
+                break;
+            case "2": DBContext.getUsers().forEach(System.out::println); break;
+            case "3": DBContext.getCourses().forEach(System.out::println); break;
+            case "4":
+                System.out.print("1-ENG 2-RUS 3-KAZ > ");
+                switch (reader.readLine()) {
+                    case "1": currentSessionLang=Language.ENG; break;
+                    case "2": currentSessionLang=Language.RUS; break;
+                    case "3": currentSessionLang=Language.KAZ; break;
+                }
+                currentUser.switchLanguage(currentSessionLang);
+                break;
+            case "0": currentUser = null; break;
         }
+    }
 
-        if (currentUser instanceof Admin && choice.equals("3")) {
-            Admin admin = (Admin) currentUser;
-            
-            System.out.println(currentUser.getLanguageMessage(
-                "Select user type number:", 
-                "Выберите номер типа пользователя:", 
-                "Пайдаланушы түрінің нөмірін таңдаңыз:"
-            ));
-            
-            System.out.println("1 - Student");
-            System.out.println("2 - Graduate Student");
-            System.out.println("3 - Teacher");
-            System.out.println("4 - Manager");
-            System.out.println("5 - Tech Support");
+    // ─── Teacher Menu ─────────────────────────────────────────────────────────
 
-            String typeChoice = reader.readLine();
-            String type = "";
+    private static void teacherMenu() throws IOException {
+        Teacher teacher = (Teacher) currentUser;
+        System.out.println("\n[TEACHER] " + teacher.getName() + " (" + teacher.getType() + ")");
+        System.out.println("1 - Put mark for student");
+        System.out.println("2 - Mark attendance");
+        System.out.println("3 - View my info");
+        System.out.println("4 - Switch language (" + teacher.getCurrentLanguage() + ")");
+        System.out.println("0 - Logout");
 
-            switch (typeChoice) {
-                case "1": type = "student"; break;
-                case "2": type = "graduate"; break;
-                case "3": type = "teacher"; break;
-                case "4": type = "manager"; break;
-                case "5": type = "techsupport"; break;
-                default: 
-                    System.out.println(currentUser.getLanguageMessage("Invalid number!", "Неверный номер!", "Қате нөмір!")); 
-                    return;
-            }
-
-            System.out.print(currentUser.getLanguageMessage("Name: ", "Имя: ", "Аты: "));
-            String name = reader.readLine();
-            
-            System.out.print(currentUser.getLanguageMessage("Login: ", "Логин: ", "Логин: "));
-            String log = reader.readLine();
-            
-            System.out.print(currentUser.getLanguageMessage("Password: ", "Пароль: ", "Құпия сөз: "));
-            String pass = reader.readLine();
-
-            User newUser = admin.createUser(type, "ID-" + (DBContext.getUsers().size() + 1), name, log, pass);
-            
-            if (newUser != null) {
-                DBContext.addUser(newUser);
-                DBContext.save();
-                String success = currentUser.getLanguageMessage("registered successfully!", "зарегистрирован успешно!", "сәтті тіркелді!");
-                successMsg(name + " " + success);
-            }
+        switch (reader.readLine()) {
+            case "1": teacherPutMark(teacher);      break;
+            case "2": teacherAttendance(teacher);   break;
+            case "3": teacher.viewInfo();            break;
+            case "4":
+                System.out.print("1-ENG 2-RUS 3-KAZ > ");
+                switch (reader.readLine()) {
+                    case "1": teacher.switchLanguage(Language.ENG); currentSessionLang=Language.ENG; break;
+                    case "2": teacher.switchLanguage(Language.RUS); currentSessionLang=Language.RUS; break;
+                    case "3": teacher.switchLanguage(Language.KAZ); currentSessionLang=Language.KAZ; break;
+                }
+                break;
+            case "0": currentUser = null; break;
         }
-        
-        if (currentUser instanceof Admin && choice.equals("4")) {
-            DBContext.getUsers().forEach(System.out::println);
+    }
+
+    private static void teacherPutMark(Teacher teacher) throws IOException {
+        System.out.print("Student ID: ");  String sId   = reader.readLine().trim();
+        System.out.print("Course code: "); String cCode = reader.readLine().trim();
+        Semester sem = chooseSemester();
+        if (sem == null) return;
+
+        Student student = findStudent(sId);
+        Course  course  = findCourse(cCode);
+        if (student == null || course == null) return;
+
+        System.out.print("Att1  (0-30): "); double a1 = parseDouble();
+        System.out.print("Att2  (0-30): "); double a2 = parseDouble();
+        System.out.print("Final (0-40): "); double fe = parseDouble();
+        teacher.putMark(student, course, sem, new Mark(a1, a2, fe));
+        DBContext.save();
+    }
+
+    private static void teacherAttendance(Teacher teacher) throws IOException {
+        System.out.print("Student ID: ");  String sId   = reader.readLine().trim();
+        System.out.print("Course code: "); String cCode = reader.readLine().trim();
+        Semester sem = chooseSemester();
+        if (sem == null) return;
+
+        Student  student = findStudent(sId);
+        Course   course  = findCourse(cCode);
+        if (student == null || course == null) return;
+
+        Enrollment enrollment = course.findEnrollment(student, sem);
+        if (enrollment == null) { System.out.println("Enrollment not found."); return; }
+
+        System.out.print("Lesson number: ");
+        int lesson;
+        try { lesson = Integer.parseInt(reader.readLine().trim()); }
+        catch (NumberFormatException e) { System.out.println("Invalid."); return; }
+
+        System.out.print("Present? (y/n): ");
+        boolean present = reader.readLine().trim().equalsIgnoreCase("y");
+        teacher.markAttendance(enrollment, lesson, present);
+        DBContext.save();
+    }
+
+    // ─── Helpers ──────────────────────────────────────────────────────────────
+
+    private static Semester chooseSemester() throws IOException {
+        System.out.print("Semester (1-FALL 2-SPRING 3-SUMMER): ");
+        switch (reader.readLine().trim()) {
+            case "1": return Semester.FALL;
+            case "2": return Semester.SPRING;
+            case "3": return Semester.SUMMER;
+            default: System.out.println("Invalid semester."); return null;
         }
+    }
+
+    private static Student findStudent(String id) {
+        User u = DBContext.getUsers().stream()
+                .filter(x -> x instanceof Student && x.getId().equals(id))
+                .findFirst().orElse(null);
+        if (u == null) System.out.println("Student not found: " + id);
+        return (Student) u;
+    }
+
+    private static Course findCourse(String code) {
+        Course c = DBContext.getCourses().stream()
+                .filter(x -> code.equalsIgnoreCase(x.getCourseCode()))
+                .findFirst().orElse(null);
+        if (c == null) System.out.println("Course not found: " + code);
+        return c;
+    }
+
+    private static double parseDouble() throws IOException {
+        try { return Double.parseDouble(reader.readLine().trim()); }
+        catch (NumberFormatException e) { return 0; }
     }
 
     private static void welcomeMsg() {
-        System.out.println("\n" + getStaticMsg(
-            "   UNIVERSITY MANAGEMENT SYSTEM: ", 
-            "   СИСТЕМА УПРАВЛЕНИЯ УНИВЕРСИТЕТОМ: ", 
-            "   УНИВЕРСИТЕТТІ БАСҚАРУ ЖҮЙЕСІ: "
-        ));
-        System.out.println("---------------------------------");
+        System.out.println("\n" + sm("  UNIVERSITY MANAGEMENT SYSTEM","  СИСТЕМА УПРАВЛЕНИЯ УНИВЕРСИТЕТОМ","  УНИВЕРСИТЕТТІ БАСҚАРУ ЖҮЙЕСІ"));
+        System.out.println("  " + "─".repeat(36));
     }
 }
+
+
+
 
 
 

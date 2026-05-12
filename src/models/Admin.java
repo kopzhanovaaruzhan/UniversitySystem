@@ -20,7 +20,12 @@ public class Admin extends Employee implements UserFactory {
                 return new Student(id, name, login, password);
 
             case "graduate":
-                return new GraduateStudent(id, name, login, password, GraduateLevel.MASTER, null);
+                try {
+                    return new GraduateStudent(id, name, login, password, GraduateLevel.MASTER, null);
+                } catch (exceptions.SupervisorIndexException e) {
+                    System.out.println("Supervisor error: " + e.getMessage());
+                    return null;
+                }
 
             case "teacher":
                 return new Teacher(id, name, login, password, 500000, TeacherType.LECTOR);
@@ -51,3 +56,5 @@ public class Admin extends Employee implements UserFactory {
        System.out.println("Админ просматривает системные логи");
     }
 }
+
+
