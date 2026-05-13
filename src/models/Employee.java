@@ -10,9 +10,15 @@ public abstract class Employee extends User {
         this.salary = salary;
     }
 
-    public void sendMessage(User recipient, String text) {
-        System.out.println("Отправитель: " + this.getName() + " -> Получатель: " + recipient.getName());
-        System.out.println("Текст: " + text);
+    public Message sendMessage(Employee receiver, String text, boolean official) {
+        Message message = new Message(this, receiver, text, official);
+
+        System.out.println(getLanguageMessage(
+                "Message was sent successfully.",
+                "Сообщение успешно отправлено.",
+                "Хабарлама сәтті жіберілді."
+        ));
+        return message;
     }
 
     public double getSalary() {

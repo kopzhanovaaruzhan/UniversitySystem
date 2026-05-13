@@ -6,8 +6,8 @@ import java.util.Objects;
 import enums.Language;
 
 
-public abstract class User implements UserComponent, Serializable {
-    private static final long serialVersionUID = 1L;
+public abstract class User implements UserComponent, Serializable, NewsObserver {
+	private static final long serialVersionUID = 1L;
 
     private String id;
     private String login;
@@ -23,15 +23,18 @@ public abstract class User implements UserComponent, Serializable {
         this.password = password;
     }
 
-    /*@Override
+    @Override
     public void viewNews() {
-    		String msg = getLanguageMessage(
-    				" is opening the news feed...", 
-    				" открывает ленту новостей...", 
-    				" жаңалықтар таспасын ашуда..."
-            );
-    		System.out.println(name + msg);
-    } */
+        NewsService.getInstance().printNews(this);
+    }
+
+    @Override
+    public void updateNews(News n) {
+        System.out.println(getLanguageMessage(
+            "New notification: ", "Новое уведомление: ", "Жаңа хабарлама: "
+        ) + n.getTopic());
+    }
+    
 
     public void switchLanguage(Language lang) {
         this.currentLanguage = lang;
@@ -48,18 +51,17 @@ public abstract class User implements UserComponent, Serializable {
             case ENG: default: return eng;
         }
     }
-
-    /*@Override
-    public void updateNews(News n) {
-        String msg = getLanguageMessage("NOTIFICATION for", "УВЕДОМЛЕНИЕ для", "ХАБАРЛАМА");
-        System.out.println("\n[" + msg + " " + name + "]: " + n.getContent());
-    } */
+    
+    @Override
+    public String getName() { return name; }
 
     public String getId() { return id; }
-    public String getName() { return name; }
     public String getLogin() { return login; }
     public String getPassword() { return password; }
     public Language getCurrentLanguage() { return currentLanguage; }
+    public void setName(String name) {
+        this.name = name;
+    }
 
 
     @Override

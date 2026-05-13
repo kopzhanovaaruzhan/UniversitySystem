@@ -1,10 +1,8 @@
 package models;
 
-import enums.Faculty;
-import enums.Semester;
+import enums.*;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class Course implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -15,81 +13,86 @@ public class Course implements Serializable {
     private int maxStudents;
     private Faculty faculty;
 
-    private List<Teacher> teachers;
-    private List<Enrollment> list; // все зачисления: один элемент = один студент в одном семестре
-
-    public Course(String name) {
-        this.name = name;
-        this.teachers = new ArrayList<>();
-        this.list = new ArrayList<>();
-        this.maxStudents = 30;
-    }
-
-    public Course(String courseCode, String name, int credits) {
-        this(name);
-        this.courseCode = courseCode;
-        this.credits = credits;
-    }
+    private Map<LessonType, List<Teacher>> instructors = new HashMap<>();
+    private List<Student> pendingStudents = new ArrayList<>();
+    private List<Enrollment> enrollments = new ArrayList<>(); 
 
     public Course(String courseCode, String name, int credits, Faculty faculty) {
-        this(courseCode, name, credits);
+        this.courseCode = courseCode;
+        this.name = name;
+        this.credits = credits;
         this.faculty = faculty;
+        this.maxStudents = 30;
+    }
+    
+    public boolean isEnrolled(Student student, Semester semester) {
+        return findEnrollment(student, semester) != null;
     }
 
-    // ─── Enrollment ───────────────────────────────────────────────────────────
-
-    /** Добавить зачисление (вызывается из Student.registerForCourse) */
-    public void addEnrollment(Enrollment e) {
-        list.add(e);
+    public void addPendingStudent(Student student) {
+        if (!pendingStudents.contains(student)) {
+            pendingStudents.add(student);
+        }
+    }
+    
+    public void approveStudent(Student student, Semester semester) {
+        if (pendingStudents.contains(student)) {
+            enrollments.add(new Enrollment(this, student, semester));
+            pendingStudents.remove(student);
+        }
     }
 
-    /** Найти зачисление студента в конкретном семестре */
+    public void addInstructor(Teacher teacher, LessonType type) {
+        instructors.putIfAbsent(type, new ArrayList<>());
+        instructors.get(type).add(teacher);
+    }
+
+    public List<Teacher> getInstructors(LessonType type) {
+        return instructors.getOrDefault(type, new ArrayList<>());
+    }
+
+
     public Enrollment findEnrollment(Student student, Semester semester) {
-        return list.stream()
+        return enrollments.stream()
                 .filter(e -> e.getStudent().equals(student) && e.getSemester() == semester)
                 .findFirst().orElse(null);
     }
-
-    /** Количество студентов в семестре (для проверки переполнения) */
-    public int getEnrollmentCount(Semester semester) {
-        return (int) list.stream().filter(e -> e.getSemester() == semester).count();
+    
+    public List<Teacher> getTeachers() {
+        List<Teacher> all = new ArrayList<>();
+        instructors.values().forEach(all::addAll);
+        return all;
     }
 
-    /** Сколько раз студент провалил курс (для проверки 3-провалов) */
+    public void addEnrollment(Enrollment e) {
+        this.enrollments.add(e); 
+    }
+
     public int getFailCount(Student student) {
-        return (int) list.stream()
+        return (int) enrollments.stream()
                 .filter(e -> e.getStudent().equals(student))
                 .filter(e -> e.hasMark() && !e.getMark().isPassing())
                 .count();
     }
 
     public boolean isFull(Semester semester) {
-        return getEnrollmentCount(semester) >= maxStudents;
+        long count = enrollments.stream().filter(e -> e.getSemester() == semester).count();
+        return count >= maxStudents;
     }
 
-    public boolean isEnrolled(Student student, Semester semester) {
-        return findEnrollment(student, semester) != null;
-    }
 
-    public List<Enrollment> getEnrollments() { return list; }
-
-    // ─── Геттеры/Сеттеры ──────────────────────────────────────────────────────
-
-    public String getName()            { return name; }
-    public String getCourseCode()      { return courseCode; }
-    public int getCredits()            { return credits; }
-    public Faculty getFaculty()        { return faculty; }
-    public void setFaculty(Faculty f)  { this.faculty = f; }
-    public int getMaxStudents()        { return maxStudents; }
-    public void setMaxStudents(int n)  { this.maxStudents = n; }
-    public List<Teacher> getTeachers() { return teachers; }
-    public void setTeachers(List<Teacher> t) { this.teachers = t; }
+    public String getName()        { return name; }
+    public String getCourseCode()  { return courseCode; }
+    public int getCredits()        { return credits; }
+    public List<Enrollment> getEnrollments() { return enrollments; }
+    public List<Student> getPendingStudents() { return pendingStudents; }
 
     @Override
     public String toString() {
-        return String.format("%s [%s] (%d cr.)",
-                name, courseCode != null ? courseCode : "N/A", credits);
+        return String.format("%s [%s] | Credits: %d | Faculty: %s", 
+                name, courseCode, credits, faculty);
     }
 }
+
 
 

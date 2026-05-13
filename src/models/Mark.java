@@ -41,7 +41,6 @@ public class Mark implements Serializable {
         return getTotal() >= 50;
     }
 
-    // Геттеры и сеттеры
     public double getAtt1()              { return att1; }
     public void   setAtt1(double att1)   { this.att1 = att1; }
     public double getAtt2()              { return att2; }

@@ -1,81 +1,94 @@
 package models;
 
-import enums.Semester;
-import enums.TeacherType;
+import enums.*;
+import java.util.*;
 
 public class Teacher extends Employee {
     private static final long serialVersionUID = 1L;
 
     private TeacherType type;
-    private int hIndex; // для проверки при назначении научрука
+    private int hIndex; 
+    private List<Complaint> complaints = new ArrayList<>();
+    private boolean researcher; // Профессора ВСЕГДА исследователи по ТЗ
 
     public Teacher(String id, String name, String login, String password,
                    double salary, TeacherType type) {
         super(id, name, login, password, salary);
         this.type = type;
         this.hIndex = 0;
+        
+        // Автоматическое назначение исследователем согласно PDF 
+        if (type == TeacherType.PROFESSOR) {
+            this.researcher = true;
+        }
     }
 
-    public Teacher(String id, String name, String login, String password,
-                   double salary, TeacherType type, int hIndex) {
-        this(id, name, login, password, salary, type);
-        this.hIndex = hIndex;
-    }
+    // ─── Оценка через Enrollment (Интеграция версий) ──────────────────────────
 
-    // ─── Оценка через Enrollment ──────────────────────────────────────────────
-
-    /**
-     * Поставить оценку студенту.
-     * Ищет нужный Enrollment и задаёт ему Mark.
-     */
     public void putMark(Student student, Course course, Semester semester, Mark mark) {
         Enrollment enrollment = course.findEnrollment(student, semester);
         if (enrollment == null) {
-            System.out.println("Student " + student.getName() +
-                " is not enrolled in " + course.getName() + " [" + semester + "]");
+            System.out.println(getLanguageMessage(
+                "Student not enrolled in this course.",
+                "Студент не записан на этот курс.",
+                "Студент бұл курсқа тіркелмеген."
+            ));
             return;
         }
         enrollment.setMark(mark);
-        System.out.println("Mark set: " + student.getName() +
-            " | " + course.getName() + " [" + semester + "] | " + mark);
+        System.out.println(getLanguageMessage(
+            "Mark added successfully.",
+            "Оценка успешно поставлена.",
+            "Баға сәтті қойылды."
+        ));
     }
 
-    // ─── Посещаемость через Enrollment ───────────────────────────────────────
+    // ─── Жалобы (Требование PDF: complaints with urgency level) ──────────────
 
-    /**
-     * Отметить посещаемость.
-     * Учитель получает Enrollment и вызывает этот метод.
-     */
+    public Complaint createComplaint(Student student, String text, UrgencyLevel level) {
+        //  Жалоба декану с уровнем срочности
+        Complaint complaint = new Complaint(this, student, text, level);
+        complaints.add(complaint);
+
+        System.out.println(getLanguageMessage(
+            "Complaint sent to dean. Urgency: " + level,
+            "Жалоба отправлена декану. Срочность: " + level,
+            "Шағым деканға жіберілді. Шұғылдығы: " + level
+        ));
+        return complaint;
+    }
+
+    // ─── Посещаемость ─────────────────────────────────────────────────────────
+
     public void markAttendance(Enrollment enrollment, int lessonNumber, boolean present) {
         enrollment.markAttendance(lessonNumber, present);
-        System.out.println("Attendance: lesson " + lessonNumber +
-            " → " + enrollment.getStudent().getName() +
-            " → " + (present ? "present" : "absent"));
     }
 
-    // ─── Прочее ───────────────────────────────────────────────────────────────
+    // ─── Исследовательская деятельность ───────────────────────────────────────
 
-    public void createComplaint() {
-        System.out.println(getName() + " submitted a complaint.");
+    public boolean isResearcher() {
+        return researcher;
     }
+
+    public void setResearcher(boolean researcher) {
+        this.researcher = researcher;
+    }
+
+    public int getHIndex() { return hIndex; }
+    public void setHIndex(int h) { this.hIndex = h; }
+    public TeacherType getType() { return type; }
 
     public void viewInfo() {
-        System.out.println("Teacher: " + getName());
-        System.out.println("Type:    " + type);
-        System.out.println("Salary:  " + getSalary());
-        System.out.println("H-Index: " + hIndex);
-    }
-
-    public TeacherType getType()      { return type; }
-    public void setType(TeacherType t){ this.type = t; }
-    public int getHIndex()            { return hIndex; }
-    public void setHIndex(int h)      { this.hIndex = h; }
-
-    @Override
-    public String toString() {
-        return String.format("Teacher[Name='%s', Type=%s, H-Index=%d]", getName(), type, hIndex);
+        System.out.println(getLanguageMessage(
+            "Teacher: " + getName() + " | Type: " + type + " | Researcher: " + researcher,
+            "Преподаватель: " + getName() + " | Тип: " + type + " | Исследователь: " + researcher,
+            "Оқытушы: " + getName() + " | Түрі: " + type + " | Зерттеуші: " + researcher
+        ));
     }
 }
+
+
+
 
 
 

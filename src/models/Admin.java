@@ -1,19 +1,19 @@
 package models;
 
-import enums.GraduateLevel;
-import enums.TeacherType;
+import enums.*;
+import core.DBContext;
+import exceptions.SupervisorIndexException;
+import java.util.List;
 
-//import core.DBContext;
-
-public class Admin extends Employee implements UserFactory {
+public class Admin extends Employee {
     private static final long serialVersionUID = 1L;
 
     public Admin(String id, String name, String login, String password, double salary) {
         super(id, name, login, password, salary);
     }
 
-  
-    @Override
+    // ─── Улучшенная Фабрика (Исправлен Manager и Teacher) ──────────────────────
+
     public User createUser(String type, String id, String name, String login, String password) {
         switch (type.toLowerCase()) {
             case "student":
@@ -21,40 +21,68 @@ public class Admin extends Employee implements UserFactory {
 
             case "graduate":
                 try {
+                    // По умолчанию создаем Магистра без куратора (куратор назначается позже)
                     return new GraduateStudent(id, name, login, password, GraduateLevel.MASTER, null);
-                } catch (exceptions.SupervisorIndexException e) {
-                    System.out.println("Supervisor error: " + e.getMessage());
+                } catch (SupervisorIndexException e) {
+                    System.out.println("Error: " + e.getMessage());
                     return null;
                 }
 
             case "teacher":
+                // Теперь создаем Лектора с дефолтной зарплатой
                 return new Teacher(id, name, login, password, 500000, TeacherType.LECTOR);
 
             case "manager":
-                return new Manager(id, name, login, password, 450000);
+                // ИСПРАВЛЕНО: Добавлен ManagerType (по умолчанию OR)
+                return new Manager(id, name, login, password, 450000, ManagerType.OR);
 
             case "techsupport":
                 return new TechSupportSpecialist(id, name, login, password, 350000);
 
             default:
-                System.out.println("Unknown user type: " + type);
+                System.out.println(getLanguageMessage("Unknown type: ", "Неизвестный тип: ", "Белгісіз тип: ") + type);
                 return null;
         }
     }
 
-/*
-    public void removeUser(User user) {
-        DBContext.getInstance().removeUser(user);
-        System.out.println("Админ удалил пользователя: " + user.getName());
-    } */
+    // ─── Методы управления (Requirement: Manage Users) ─────────────────────────
 
-    public void updateUser(User user) {
-        System.out.println("Админ обновил пользователя: " + user.getName());
+    public void removeUser(User user) {
+        if (user.equals(this)) {
+            System.out.println(getLanguageMessage("Cannot remove yourself!", "Нельзя удалить самого себя!", "Өзіңізді өшіре алмайсыз!"));
+            return;
+        }
+        DBContext.getUsers().remove(user);
+        DBContext.save(); // Сохраняем изменения в файл сразу
+        System.out.println(getLanguageMessage("User removed: ", "Пользователь удален: ", "Пайдаланушы өшірілді: ") + user.getName());
     }
+
+    public void updateUser(User user, String newName) {
+        user.setName(newName);
+        DBContext.save();
+        System.out.println(getLanguageMessage("User info updated.", "Данные пользователя обновлены.", "Пайдаланушы мәліметтері жаңартылды."));
+    }
+
+    // ─── Системные логи (Requirement: See log files about user actions) ────────
 
     public void viewSystemLogs() {
-       System.out.println("Админ просматривает системные логи");
+        System.out.println("\n=== " + getLanguageMessage("SYSTEM LOGS", "СИСТЕМНЫЕ ЛОГИ", "ЖҮЙЕЛІК ЛОГТАР") + " ===");
+        List<String> logs = DBContext.getLogs(); // Предполагаем, что ты добавила List<String> logs в DBContext
+        if (logs.isEmpty()) {
+            System.out.println(getLanguageMessage("No logs recorded.", "Логи пусты.", "Логтар бос."));
+        } else {
+            logs.forEach(System.out::println);
+        }
+    }
+
+    public void viewInfo() {
+        System.out.println(getLanguageMessage(
+            "Admin: " + getName() + " | System Access: FULL",
+            "Админ: " + getName() + " | Доступ: ПОЛНЫЙ",
+            "Админ: " + getName() + " | Қолжетімділік: ТОЛЫҚ"
+        ));
     }
 }
+
 
 

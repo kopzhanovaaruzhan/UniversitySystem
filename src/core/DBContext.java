@@ -4,117 +4,98 @@ import java.io.*;
 import java.util.*;
 import enums.*;
 import models.*;
-import exceptions.SupervisorIndexException;
 
-public class DBContext {
-    private static final DBContext INSTANCE = new DBContext();
-    private static String rootPath;
+public class DBContext implements Serializable {
+    private static final long serialVersionUID = 1L;
+    
+    private static DBContext instance;
+    private static final String DATA_PATH = "src/data/";
 
-    private static List<Course> courses;
-    private static List<User>   users;
-
-    static {
-        rootPath = new File("src/data").getAbsolutePath();
-    }
+    private List<Course> courses = new ArrayList<>();
+    private List<User> users = new ArrayList<>();
+    private List<News> newsList = new ArrayList<>();
+    private List<String> systemLogs = new ArrayList<>();
+    private List<ResearchProject> projects = new ArrayList<>();
 
     private DBContext() {
-        courses = new ArrayList<>();
-        users   = new ArrayList<>();
-        load();
     }
 
-    public static DBContext getInstance() { return INSTANCE; }
-
-    // ─── Users ────────────────────────────────────────────────────────────────
-
-    public static void addUser(User user)    { users.add(user); }
-    public static List<User> getUsers()      { return users; }
-
-    // ─── Courses ──────────────────────────────────────────────────────────────
-
-    public static void addCourse(Course c)   { courses.add(c); }
-    public static List<Course> getCourses()  { return courses; }
-
-    // ─── Persistence ──────────────────────────────────────────────────────────
-
-    public static boolean save() {
-        return serializer(courses, "courses") & serializer(users, "users");
+    public static DBContext getInstance() {
+        if (instance == null) {
+            instance = new DBContext();
+            instance.load();
+        }
+        return instance;
     }
 
-    @SuppressWarnings("unchecked")
-    public static void load() {
-        List<Course> lc = (List<Course>) deserialize("courses");
-        List<User>   lu = (List<User>)   deserialize("users");
 
-        if (lc != null) courses = lc;
-        if (lu != null) users   = lu;
+    public static List<User> getUsers()     { return getInstance().users; }
+    public static List<Course> getCourses() { return getInstance().courses; }
+    public static List<News> getNews()       { return getInstance().newsList; }
+    public static List<String> getLogs()    { return getInstance().systemLogs; }
 
-        // Гарантируем наличие Admin
-        boolean hasAdmin = users.stream().anyMatch(u -> u instanceof Admin);
-        if (!hasAdmin)
-            users.add(new Admin("A1", "System Admin", "admin", "admin", 999999));
 
-        // Заполняем демо-данные если база пустая
-        if (courses.isEmpty()) seedCourses();
-        if (users.stream().noneMatch(u -> u instanceof Student)) seedStudents();
+    public static void addLog(String message) {
+        String log = "[" + new Date() + "] " + message;
+        getInstance().systemLogs.add(log);
     }
 
-    // ─── Демо-данные ──────────────────────────────────────────────────────────
-
-    private static void seedCourses() {
-        courses.add(new Course("CS101", "Introduction to Programming", 5, Faculty.SITE));
-        courses.add(new Course("CS201", "Data Structures",             5, Faculty.SITE));
-        courses.add(new Course("MATH101","Calculus I",                 3, Faculty.BSE));
-        courses.add(new Course("ENG101", "Academic English",           3, Faculty.ISE));
-        courses.add(new Course("CS301", "Algorithms",                  5, Faculty.SITE));
+    public static void addUser(User user) {
+        getUsers().add(user);
+        addLog("User added: " + user.getName() + " (" + user.getClass().getSimpleName() + ")");
     }
 
-    private static void seedStudents() {
-        // Учитель с h-index=5 (может быть научруком)
-        Teacher t = new Teacher("T1", "Dr. Smith", "smith", "smith123",
-                                300000, TeacherType.PROFESSOR, 5);
-        users.add(t);
 
-        // Назначаем учителя на CS101
-        courses.stream()
-               .filter(c -> "CS101".equals(c.getCourseCode()))
-               .findFirst()
-               .ifPresent(c -> c.getTeachers().add(t));
+    public static void save() {
+        File dir = new File(DATA_PATH);
+        if (!dir.exists()) dir.mkdirs();
 
-        // Обычный студент
-        users.add(new Student("S1", "Alice Johnson", "alice", "alice123", Faculty.SITE, 2));
-
-        // Аспирант
-        try {
-            GraduateStudent gs = new GraduateStudent(
-                    "G1", "Bob Master", "bob", "bob123", GraduateLevel.MASTER, t);
-            gs.addDiplomaProject("Machine Learning in Education");
-            users.add(gs);
-        } catch (SupervisorIndexException e) {
-            System.out.println("[Seed] " + e.getMessage());
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(DATA_PATH + "database.ser"))) {
+            oos.writeObject(getInstance());
+        } catch (IOException e) {
+            System.err.println("Save error: " + e.getMessage());
         }
     }
 
-    // ─── Helpers ──────────────────────────────────────────────────────────────
+    private void load() {
+        File file = new File(DATA_PATH + "database.ser");
+        if (!file.exists()) {
+            seedInitialData();
+            return;
+        }
 
-    private static boolean serializer(Object data, String fileName) {
-        File dir = new File(rootPath);
-        if (!dir.exists()) dir.mkdirs();
-        try (ObjectOutputStream oos = new ObjectOutputStream(
-                new FileOutputStream(rootPath + "/" + fileName + ".txt"))) {
-            oos.writeObject(data);
-            return true;
-        } catch (Exception e) { return false; }
-    }
-
-    private static Object deserialize(String fileName) {
-        File file = new File(rootPath + "/" + fileName + ".txt");
-        if (!file.exists()) return null;
         try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
-            return ois.readObject();
-        } catch (Exception e) { return null; }
+            DBContext loaded = (DBContext) ois.readObject();
+            this.users = loaded.users;
+            this.courses = loaded.courses;
+            this.newsList = loaded.newsList;
+            this.systemLogs = loaded.systemLogs;
+        } catch (Exception e) {
+            System.err.println("Load error: " + e.getMessage());
+            seedInitialData();
+        }
     }
+
+
+    private void seedInitialData() {
+        users.add(new Admin("A1", "System Admin", "admin", "admin", 1000000));
+        
+        courses.add(new Course("CS101", "Introduction to Programming", 5, Faculty.SITE));
+        courses.add(new Course("MATH101", "Calculus I", 3, Faculty.BSE));
+
+        Teacher prof = new Teacher("T1", "Dr. Smith", "smith", "smith123", 500000, TeacherType.PROFESSOR);
+        prof.setHIndex(5);
+        users.add(prof);
+
+        addLog("Database initialized with seed data.");
+        save();
+    }
+    
+    public static List<ResearchProject> getProjects() { return getInstance().projects; }
+
 }
+
+
 
 
 

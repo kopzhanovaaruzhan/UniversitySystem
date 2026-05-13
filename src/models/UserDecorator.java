@@ -10,7 +10,11 @@ public abstract class UserDecorator implements UserComponent, Serializable {
     public UserDecorator(UserComponent user) {
         this.component = user;
     }
-/*
+
+    public UserComponent getComponent() {
+        return component;
+    }
+
     @Override
     public void viewNews() {
         component.viewNews();
@@ -19,5 +23,12 @@ public abstract class UserDecorator implements UserComponent, Serializable {
     @Override
     public void updateNews(News n) {
         component.updateNews(n);
-    } */
+    }
+    
+    
+    @Override
+    public String getName() {
+        return component.getName();
+    }
+    
 }
