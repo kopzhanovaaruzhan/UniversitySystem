@@ -1,39 +1,43 @@
 package models;
-
-//import core.DBContext;
-
+import java.util.*;
 public class Manager extends Employee {
-    private static final long serialVersionUID = 1L;
     public Manager(String id, String name, String login, String password, double salary) {
         super(id, name, login, password, salary);
     }
 
-    /*public void addCourse(Course course) {
-        DBContext.getInstance().addCourse(course);
-        System.out.println("Менеджер добавил курс: " + course.getName());
-    } */
-    public void assignTeacher(Teacher teacher, Course course) {
-        course.getTeachers().add(teacher);
-        System.out.println("Преподаватель " + teacher.getName()
-                + "назначен на курс" + course.getName());
-    }
-    /*public void manageNews(News news) {
-    		DBContext.getInstance().addNews(news);
-        System.out.println("Менеджер добавил новость: " + news.getContent());
-    } */
-
     public void approveRegistration(Student student, Course course) {
-        course.addStudent(student);
-        System.out.println("Регистрация одобрена для " + student.getName());
+        course.approveStudent(student);
+        System.out.println(getLanguageMessage(
+                "Student registration was approved.",
+                "Регистрация студента была подтверждена.",
+                "Студенттің тіркелуі мақұлданды."
+        ));
     }
-    public void createReport() {
-        System.out.println("Менеджер сделал отчет");
+    public void assignTeacherToCourse(Teacher teacher, Course course, LessonType type) {
+        course.addInstructor(teacher, type);
+        System.out.println(getLanguageMessage(
+                "Преподаватель был назначен на курс.",
+                "Teacher was assigned to course.",
+                "Мұғалім курсқа тағайындалды."
+        ));
     }
+    public void createPerformanceReport(List<Student> students) {
+        System.out.println(getLanguageMessage(
+                "Academic Performance Report:",
+                "Статистический отчет по успеваемости:",
+                "Академиялық үлгерім есебі:"
+        ));
+        for (Student student : students) {
+            double sum = 0;
+            int count = 0;
 
-    public void viewInfo() {
-        System.out.println("Менеджер: " + getName());
-        System.out.println("Зарплата: " + getSalary());
+            for (Mark mark : student.getMarks().values()) {
+                sum += mark.getTotal();
+                count++;
+            }
+            double average = count == 0 ? 0 : sum / count;
+            System.out.println(student.getName() + " average grade: " + average);
+        }
     }
 }
-
 

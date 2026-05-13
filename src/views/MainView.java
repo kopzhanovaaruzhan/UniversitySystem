@@ -87,7 +87,7 @@ public class MainView extends BaseView {
             String l = reader.readLine();
             if(l.equals("1")) currentUser.switchLanguage(Language.ENG);
             if(l.equals("2")) currentUser.switchLanguage(Language.RUS);
-            if(l.equals("3")) currentUser.switchLanguage(Language.KAZ);
+            if(l.equals("3")) currentUser.switchLanguage(Language.KZ);
             return;
         }
         /*if (choice.equals("2")) {

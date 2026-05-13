@@ -1,58 +1,52 @@
 package models;
-
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
-//import java.util.Map;
-
+import java.util.*;
 public class Course implements Serializable {
-    private static final long serialVersionUID = 1L;
-
-    private String courseCode;
+    private String code;
     private String name;
     private int credits;
-    
-    private int maxStudent;
-    //private Map<Student, List<Mark>> gradebook;
-    
-    private List<Student> students;
-    private List<Teacher> teachers;
+    private List<Student> students = new ArrayList<>();
+    private Map<LessonType, List<Teacher>> instructors = new HashMap<>();
+    private List<Student> pendingStudents = new ArrayList<>();
 
-    public Course(String name) {
+    public Course(String code, String name, int credits) {
+        this.code = code;
         this.name = name;
-        this.students = new ArrayList<>();
-        this.setTeachers(new ArrayList<>());
-    }
-
-    public Course(String courseCode, String name, int credits) {
-        this(name);
-        this.courseCode = courseCode;
         this.credits = credits;
     }
+    public void addPendingStudent(Student student) {
+        pendingStudents.add(student);
+    }
 
-    public void addStudent(Student s) {
-    		if (!students.contains(s) && students.size() < maxStudent) {
-            students.add(s);
-        } else {
-            System.out.println("Course is full");
+    public void approveStudent(Student student) {
+        if (pendingStudents.contains(student)) {
+            students.add(student);
+            student.addCourse(this);
+            pendingStudents.remove(student);
         }
     }
-
-    public String getName() { return name; }
-    public String getCourseCode() { return courseCode; }
-    public int getCredits() { return credits; }
-    public List<Student> getStudents() { return students; }
-
-    @Override
-    public String toString() {
-        return String.format("%s [%s] (%d credits)", name, courseCode != null ? courseCode : "N/A", credits);
+    public void addInstructor(Teacher teacher, LessonType type) {
+        instructors.putIfAbsent(type, new ArrayList<>());
+        instructors.get(type).add(teacher);
     }
 
-	public List<Teacher> getTeachers() {
-		return teachers;
-	}
+    public List<Student> getStudents() {
+        return students;
+    }
 
-	public void setTeachers(List<Teacher> teachers) {
-		this.teachers = teachers;
-	}
+    public List<Student> getPendingStudents() {
+        return pendingStudents;
+    }
+
+    public int getCredits() {
+        return credits;
+    }
+
+    public String getCode() {
+        return code;
+    }
+
+    public String getName() {
+        return name;
+    }
 }
