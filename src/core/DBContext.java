@@ -12,7 +12,7 @@ public class DBContext implements Serializable {
     private static final String DATA_PATH = "src/data/";
 
     private List<Course> courses = new ArrayList<>();
-    private List<User> users = new ArrayList<>();
+    private List<UserComponent> users = new ArrayList<>();
     private List<News> newsList = new ArrayList<>();
     private List<String> systemLogs = new ArrayList<>();
     private List<ResearchProject> projects = new ArrayList<>();
@@ -29,7 +29,7 @@ public class DBContext implements Serializable {
     }
 
 
-    public static List<User> getUsers()     { return getInstance().users; }
+    public static List<UserComponent> getUsers()     { return getInstance().users; }
     public static List<Course> getCourses() { return getInstance().courses; }
     public static List<News> getNews()       { return getInstance().newsList; }
     public static List<String> getLogs()    { return getInstance().systemLogs; }
@@ -43,6 +43,20 @@ public class DBContext implements Serializable {
     public static void addUser(User user) {
         getUsers().add(user);
         addLog("User added: " + user.getName() + " (" + user.getClass().getSimpleName() + ")");
+    }
+    
+    public static void addCourse(Course c) { 
+        getInstance().courses.add(c); 
+        addLog("Course added: " + c.getName());
+    }
+    
+    public static List<ResearchProject> getProjects() {
+        return getInstance().projects;
+    }
+
+    public static void addProject(ResearchProject p) {
+        getInstance().projects.add(p);
+        addLog("Research project created: " + p.getTopic());
     }
 
 
@@ -91,7 +105,6 @@ public class DBContext implements Serializable {
         save();
     }
     
-    public static List<ResearchProject> getProjects() { return getInstance().projects; }
 
 }
 

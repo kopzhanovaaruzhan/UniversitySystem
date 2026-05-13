@@ -12,8 +12,6 @@ public class Admin extends Employee {
         super(id, name, login, password, salary);
     }
 
-    // ─── Улучшенная Фабрика (Исправлен Manager и Teacher) ──────────────────────
-
     public User createUser(String type, String id, String name, String login, String password) {
         switch (type.toLowerCase()) {
             case "student":
@@ -21,7 +19,6 @@ public class Admin extends Employee {
 
             case "graduate":
                 try {
-                    // По умолчанию создаем Магистра без куратора (куратор назначается позже)
                     return new GraduateStudent(id, name, login, password, GraduateLevel.MASTER, null);
                 } catch (SupervisorIndexException e) {
                     System.out.println("Error: " + e.getMessage());
@@ -29,11 +26,9 @@ public class Admin extends Employee {
                 }
 
             case "teacher":
-                // Теперь создаем Лектора с дефолтной зарплатой
                 return new Teacher(id, name, login, password, 500000, TeacherType.LECTOR);
 
             case "manager":
-                // ИСПРАВЛЕНО: Добавлен ManagerType (по умолчанию OR)
                 return new Manager(id, name, login, password, 450000, ManagerType.OR);
 
             case "techsupport":
@@ -45,29 +40,32 @@ public class Admin extends Employee {
         }
     }
 
-    // ─── Методы управления (Requirement: Manage Users) ─────────────────────────
 
-    public void removeUser(User user) {
+    public void removeUser(UserComponent user) {
         if (user.equals(this)) {
             System.out.println(getLanguageMessage("Cannot remove yourself!", "Нельзя удалить самого себя!", "Өзіңізді өшіре алмайсыз!"));
             return;
         }
         DBContext.getUsers().remove(user);
-        DBContext.save(); // Сохраняем изменения в файл сразу
+        DBContext.save(); 
         System.out.println(getLanguageMessage("User removed: ", "Пользователь удален: ", "Пайдаланушы өшірілді: ") + user.getName());
     }
 
-    public void updateUser(User user, String newName) {
-        user.setName(newName);
+    public void updateUser(UserComponent user, String newName) {
+        if (user instanceof User) {
+            ((User) user).setName(newName);
+        } else if (user instanceof ResearchDecorator) {
+            ((ResearchDecorator) user).getBaseUser().setName(newName);
+        }
+        
         DBContext.save();
         System.out.println(getLanguageMessage("User info updated.", "Данные пользователя обновлены.", "Пайдаланушы мәліметтері жаңартылды."));
     }
 
-    // ─── Системные логи (Requirement: See log files about user actions) ────────
 
     public void viewSystemLogs() {
         System.out.println("\n=== " + getLanguageMessage("SYSTEM LOGS", "СИСТЕМНЫЕ ЛОГИ", "ЖҮЙЕЛІК ЛОГТАР") + " ===");
-        List<String> logs = DBContext.getLogs(); // Предполагаем, что ты добавила List<String> logs в DBContext
+        List<String> logs = DBContext.getLogs();
         if (logs.isEmpty()) {
             System.out.println(getLanguageMessage("No logs recorded.", "Логи пусты.", "Логтар бос."));
         } else {

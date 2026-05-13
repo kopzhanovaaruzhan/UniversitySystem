@@ -6,7 +6,7 @@ import enums.*;
 import models.*;
 
 public class MainView extends BaseView {
-    private static User currentUser = null;
+    private static UserComponent currentUser = null;
     private static Language currentSessionLang = Language.ENG;
 
     public static void run() throws IOException {
@@ -34,20 +34,36 @@ public class MainView extends BaseView {
     }
 
     private static void loginProcess() throws IOException {
-        System.out.print(sm("Username: ","Логин: ","Логин: "));
+        System.out.print(sm("Username: ", "Логин: ", "Логин: "));
         String login = reader.readLine();
-        System.out.print(sm("Password: ","Пароль: ","Пароль: "));
+        System.out.print(sm("Password: ", "Пароль: ", "Пароль: "));
         String pass = reader.readLine();
 
-        currentUser = DBContext.getUsers().stream()
-                .filter(u -> u.login(login, pass)).findFirst().orElse(null);
+        currentUser = null;
+
+        for (UserComponent uc : DBContext.getUsers()) {
+            User baseUser = null;
+
+            if (uc instanceof User) {
+                baseUser = (User) uc;
+            } 
+            else if (uc instanceof ResearchDecorator) {
+                baseUser = ((ResearchDecorator) uc).getBaseUser();
+            }
+            if (baseUser != null && baseUser.getLogin().equals(login) && baseUser.getPassword().equals(pass)) {
+                currentUser = uc;
+                break;
+            }
+        }
 
         if (currentUser != null) {
             currentUser.switchLanguage(currentSessionLang);
-            successMsg(currentUser.getLanguageMessage("Welcome","Добро пожаловать","Қош келдіңіз")
-                + ", " + currentUser.getName() + "!");
+            
+            String welcome = currentUser.getLanguageMessage("Welcome", "Добро пожаловать", "Қош келдіңіз");
+            successMsg(welcome + ", " + currentUser.getName() + "!");
+
         } else {
-            System.out.println(sm("Error: Invalid credentials.","Ошибка: Неверные данные.","Қате мәліметтер."));
+            System.out.println(sm("Error: Invalid credentials.", "Ошибка: Неверные данные.", "Қате мәліметтер."));
         }
     }
 
@@ -67,7 +83,6 @@ public class MainView extends BaseView {
         }
     }
 
-    // ─── Admin Menu ───────────────────────────────────────────────────────────
 
     private static void adminMenu() throws IOException {
         String lu = currentUser.getLanguageMessage("\nLogged in as Admin: ","Вы вошли как Admin: ","Admin: ");
@@ -112,7 +127,6 @@ public class MainView extends BaseView {
         }
     }
 
-    // ─── Teacher Menu ─────────────────────────────────────────────────────────
 
     private static void teacherMenu() throws IOException {
         Teacher teacher = (Teacher) currentUser;
@@ -180,7 +194,6 @@ public class MainView extends BaseView {
         DBContext.save();
     }
 
-    // ─── Helpers ──────────────────────────────────────────────────────────────
 
     private static Semester chooseSemester() throws IOException {
         System.out.print("Semester (1-FALL 2-SPRING 3-SUMMER): ");
@@ -193,11 +206,21 @@ public class MainView extends BaseView {
     }
 
     private static Student findStudent(String id) {
-        User u = DBContext.getUsers().stream()
-                .filter(x -> x instanceof Student && x.getId().equals(id))
-                .findFirst().orElse(null);
-        if (u == null) System.out.println("Student not found: " + id);
-        return (Student) u;
+        for (UserComponent uc : DBContext.getUsers()) {
+            User baseUser = null;
+            if (uc instanceof User) {
+                baseUser = (User) uc;
+            } else if (uc instanceof ResearchDecorator) {
+                baseUser = ((ResearchDecorator) uc).getBaseUser();
+            }
+
+            if (baseUser instanceof Student && baseUser.getId().equals(id)) {
+                return (Student) baseUser;
+            }
+        }
+        
+        System.out.println(sm("Student not found: ", "Студент не найден: ", "Студент табылмады: ") + id);
+        return null;
     }
 
     private static Course findCourse(String code) {

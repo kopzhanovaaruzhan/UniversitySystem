@@ -1,7 +1,8 @@
 package models;
 
 import java.util.*;
-import core.DBContext;
+
+import enums.Language;
 
 public class ResearchDecorator extends UserDecorator {
     private static final long serialVersionUID = 1L;
@@ -28,11 +29,6 @@ public class ResearchDecorator extends UserDecorator {
         System.out.println(msg + project.getTopic());
     }
 
-    public List<ResearchProject> getMyProjects() {
-        return DBContext.getProjects().stream()
-                .filter(p -> p.getMembers().contains(this))
-                .toList();
-    }
 
     public void viewMyPapers() {
         if (papers.isEmpty()) {
@@ -78,6 +74,22 @@ public class ResearchDecorator extends UserDecorator {
         }
         return h;
     }
+    
+    @Override
+    public void switchLanguage(Language lang) {
+        component.switchLanguage(lang);
+    }
+
+    @Override
+    public Language getCurrentLanguage() {
+        return component.getCurrentLanguage();
+    }
+
+    @Override
+    public String getLanguageMessage(String en, String ru, String kz) {
+        return component.getLanguageMessage(en, ru, kz);
+    }
+
 }
 
 
