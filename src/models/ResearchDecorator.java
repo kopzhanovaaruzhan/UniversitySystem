@@ -15,35 +15,14 @@ public class ResearchDecorator extends UserDecorator {
 
     public void publishPaper(ResearchPaper paper) {
         papers.add(paper);
-        System.out.println("Researcher " + getName() + " published: " + paper.getTitle());
     }
 
     public void joinProject(ResearchProject project) {
         project.addMember(this);
-        
-        String msg = getBaseUser().getLanguageMessage(
-            "Successfully joined: ", 
-            "Вы вступили в проект: ", 
-            "Жобаға қосылдыңыз: "
-        );
-        System.out.println(msg + project.getTopic());
     }
-
-
-    public void viewMyPapers() {
-        if (papers.isEmpty()) {
-            System.out.println(getBaseUser().getLanguageMessage(
-                "No papers.", "У вас нет работ.", "Жұмыстар жоқ."));
-            return;
-        }
-        printPapers(Comparator.comparing(ResearchPaper::getTitle));
-    }
-
-    public void printPapers(Comparator<ResearchPaper> c) {
-        papers.sort(c);
-        for (ResearchPaper paper : papers) {
-            System.out.println(paper);
-        }
+    
+    public List<ResearchPaper> getPapers() {
+        return this.papers; 
     }
 
 

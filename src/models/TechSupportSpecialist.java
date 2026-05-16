@@ -14,22 +14,7 @@ public class TechSupportSpecialist extends Employee {
     public void addRequest(TechSupportRequest request) {
         requests.add(request);
     }
-    public void viewRequests() {
-        if (requests.isEmpty()) {
-            System.out.println(getLanguageMessage(
-                    "No support requests found.",
-                    "Нет запросов в техподдержку.",
-                    "Техникалық қолдау сұраныстары жоқ."
-            ));
-            return;
-        }
-        for (TechSupportRequest request : requests) {
-            if (request.getStatus() == RequestStatus.NEW) {
-                request.setStatus(RequestStatus.VIEWED);
-            }
-            System.out.println(request);
-        }
-    }
+
     public void acceptRequest(TechSupportRequest request) {
         if (request.getStatus() == RequestStatus.VIEWED) {
             request.setStatus(RequestStatus.ACCEPTED);
@@ -44,6 +29,20 @@ public class TechSupportSpecialist extends Employee {
         if (request.getStatus() == RequestStatus.ACCEPTED) {
             request.setStatus(RequestStatus.DONE);
         }
+    }
+    
+    public Queue<TechSupportRequest> getRequestsQueue() {
+        return requests;
+    }
+
+    public List<TechSupportRequest> getAndResetRequests() {
+        List<TechSupportRequest> list = new ArrayList<>(requests);
+        for (TechSupportRequest request : requests) {
+            if (request.getStatus() == RequestStatus.NEW) {
+                request.setStatus(RequestStatus.VIEWED);
+            }
+        }
+        return list;
     }
 }
 

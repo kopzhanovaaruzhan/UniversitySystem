@@ -16,6 +16,7 @@ public class DBContext implements Serializable {
     private List<News> newsList = new ArrayList<>();
     private List<String> systemLogs = new ArrayList<>();
     private List<ResearchProject> projects = new ArrayList<>();
+    private List<Complaint> complaints = new ArrayList<>();
 
     private DBContext() {
     }
@@ -58,6 +59,14 @@ public class DBContext implements Serializable {
         getInstance().projects.add(p);
         addLog("Research project created: " + p.getTopic());
     }
+    
+    public static List<Complaint> getComplaints() {
+        return getInstance().complaints;
+    }
+
+    public static void addComplaint(Complaint complaint) {
+        getInstance().complaints.add(complaint);
+    }
 
 
     public static void save() {
@@ -84,6 +93,7 @@ public class DBContext implements Serializable {
             this.courses = loaded.courses;
             this.newsList = loaded.newsList;
             this.systemLogs = loaded.systemLogs;
+            this.complaints = loaded.complaints != null ? loaded.complaints : new ArrayList<>();
         } catch (Exception e) {
             System.err.println("Load error: " + e.getMessage());
             seedInitialData();

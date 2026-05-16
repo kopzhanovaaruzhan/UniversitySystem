@@ -52,94 +52,24 @@ public class Student extends User {
 
         return enrollment;
     }
-
-
-    public void viewTranscript() {
-        System.out.println("\n══════════════════════════════════════════");
-        System.out.println(getLanguageMessage("TRANSCRIPT", "ТРАНСКРИПТ", "ТРАНСКРИПТ"));
-        System.out.println(getName() + "  |  ID: " + studentID +
-                "  |  " + getLanguageMessage("Year ", "Курс ", "Курс ") + yearOfStudy +
-                "  |  " + faculty);
-        System.out.println("──────────────────────────────────────────");
-
-        if (registrations.isEmpty()) {
-            System.out.println(getLanguageMessage("No enrollments.", "Нет зачислений.", "Тіркелу жоқ."));
-        } else {
-            Map<Semester, List<Enrollment>> bySemester = new LinkedHashMap<>();
-            for (Enrollment e : registrations) {
-                bySemester.computeIfAbsent(e.getSemester(), _ -> new ArrayList<>()).add(e);
-            }
-
-            double totalWeightedGpa = 0; 
-            int totalCredits = 0;
-
-            for (Map.Entry<Semester, List<Enrollment>> entry : bySemester.entrySet()) {
-                System.out.println("\n  ── " + entry.getKey() + " ──");
-                for (Enrollment e : entry.getValue()) {
-                    System.out.printf("  %-30s %d cr.%n", e.getCourse().getName(), e.getCourse().getCredits());
-                    
-                    if (e.hasMark()) {
-                        System.out.println("    " + e.getMark().toString());
-                        totalWeightedGpa += (e.getMark().convertToGpa() * e.getCourse().getCredits());
-                        totalCredits += e.getCourse().getCredits();
-                    } else {
-                        System.out.println("    " + getLanguageMessage("No mark yet.", "Оценка не выставлена.", "Баға жоқ."));
-                    }
-                    
-                    System.out.printf("    " + getLanguageMessage("Attendance: ", "Посещаемость: ", "Қатысу: ") + "%.0f%%%n",
-                            e.getAttendancePercent());
-                }
-            }
-
-            System.out.println("──────────────────────────────────────────");
-            
-            if (totalCredits > 0) {
-                this.gpa = totalWeightedGpa / totalCredits;
-                System.out.printf(getLanguageMessage("Total GPA: ", "Общий ГПА: ", "Жалпы ГПА: ") + "%.2f%n", this.gpa);
-            } else {
-                System.out.println(getLanguageMessage("GPA: N/A", "ГПА: Н/Д", "ГПА: Жоқ"));
-            }
-        }
-        System.out.println("══════════════════════════════════════════\n");
-    }
-
-
-    public void viewMarks() {
-        System.out.println("\n" + getLanguageMessage("=== Marks ===", "=== Оценки ===", "=== Бағалар ==="));
-        if (registrations.isEmpty()) {
-            System.out.println(getLanguageMessage("No enrollments.", "Нет зачислений.", "Тіркелу жоқ.")); return;
-        }
+    
+    
+    public Map<Semester, List<Enrollment>> getTranscriptData() {
+        Map<Semester, List<Enrollment>> bySemester = new LinkedHashMap<>();
         for (Enrollment e : registrations) {
-            System.out.printf("[%-6s] %-28s  %s%n",
-                    e.getSemester(), e.getCourse().getName(),
-                    e.hasMark() ? e.getMark().toString() :
-                        getLanguageMessage("No mark yet", "Нет оценки", "Баға жоқ"));
+            bySemester.computeIfAbsent(e.getSemester(), _ -> new ArrayList<>()).add(e);
         }
+        return bySemester;
     }
 
-    public void viewCourseTeachers(Course course) {
-        System.out.println("\n" + getLanguageMessage("Teachers of ", "Преподаватели курса ", "Оқытушылар: ") + course.getName() + ":");
-        if (course.getTeachers().isEmpty()) {
-            System.out.println("  " + getLanguageMessage("None assigned.", "Не назначены.", "Тағайындалмаған."));
-        } else {
-            course.getTeachers().forEach(t ->
-                System.out.println("  - " + t.getName() + " (" + t.getType() + ")"));
-        }
-    }
-
-    public void rateTeacher(Teacher teacher, Course course, int rating) {
-        if (rating < 1 || rating > 5) {
-            System.out.println(getLanguageMessage("Rating must be 1-5.", "Оценка от 1 до 5.", "Рейтинг 1-ден 5-ке дейін.")); return;
-        }
+    public boolean rateTeacherLogic(Teacher teacher, Course course, int rating) {
+        if (rating < 1 || rating > 5) return false;
+        
         boolean enrolled = registrations.stream().anyMatch(e -> e.getCourse().equals(course));
-        if (!enrolled) {
-            System.out.println(getLanguageMessage("Not enrolled in this course.", "Вы не записаны на этот курс.", "Бұл курсқа тіркелмегенсіз.")); return;
-        }
-        if (!course.getTeachers().contains(teacher)) {
-            System.out.println(getLanguageMessage("Teacher not in this course.", "Преподаватель не ведёт этот курс.", "Оқытушы бұл курста жоқ.")); return;
-        }
+        if (!enrolled || !course.getTeachers().contains(teacher)) return false;
+        
         teacherRatings.put(teacher.getId(), rating);
-        System.out.println(getLanguageMessage("Rated ", "Оценили ", "Бағаладыңыз: ") + teacher.getName() + " → " + rating + "/5");
+        return true;
     }
 
 

@@ -12,27 +12,33 @@ public class Admin extends Employee {
         super(id, name, login, password, salary);
     }
 
-    public User createUser(String type, String id, String name, String login, String password) {
-        switch (type.toLowerCase()) {
+    public User createUser(String type, String id, String name, String login, String password, double salary, Object specialParam) {
+        switch (type.toLowerCase().trim()) {
             case "student":
-                return new Student(id, name, login, password);
+                Faculty faculty = (specialParam instanceof Faculty) ? (Faculty) specialParam : Faculty.SITE;
+                return new Student(id, name, login, password, faculty, 1);
 
             case "graduate":
+                Object[] gradParams = (Object[]) specialParam;
+                GraduateLevel level = (GraduateLevel) gradParams[0];
+                Teacher supervisor = (Teacher) gradParams[1];
                 try {
-                    return new GraduateStudent(id, name, login, password, GraduateLevel.MASTER, null);
+                    return new GraduateStudent(id, name, login, password, level, supervisor);
                 } catch (SupervisorIndexException e) {
-                    System.out.println("Error: " + e.getMessage());
+                    System.out.println("Error assigning supervisor: " + e.getMessage());
                     return null;
                 }
 
             case "teacher":
-                return new Teacher(id, name, login, password, 500000, TeacherType.LECTOR);
+                TeacherType tt = (specialParam instanceof TeacherType) ? (TeacherType) specialParam : TeacherType.TUTOR;
+                return new Teacher(id, name, login, password, salary, tt);
 
             case "manager":
-                return new Manager(id, name, login, password, 450000, ManagerType.OR);
+                ManagerType mt = (specialParam instanceof ManagerType) ? (ManagerType) specialParam : ManagerType.OR;
+                return new Manager(id, name, login, password, salary, mt);
 
             case "techsupport":
-                return new TechSupportSpecialist(id, name, login, password, 350000);
+                return new TechSupportSpecialist(id, name, login, password, salary);
 
             default:
                 System.out.println(getLanguageMessage("Unknown type: ", "Неизвестный тип: ", "Белгісіз тип: ") + type);

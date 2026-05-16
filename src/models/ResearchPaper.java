@@ -24,6 +24,7 @@ public class ResearchPaper implements Serializable {
         this.datePublished = new Date();
     }
 
+    
 
     public String getCitation(Format f) {
         if (f == Format.BIBTEX) {

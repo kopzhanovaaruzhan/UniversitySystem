@@ -1,13 +1,14 @@
 package views;
 
 import core.DBContext;
-import enums.Language;
 import enums.Semester;
 import exceptions.CourseRegistrationException;
 import models.*;
+import controllers.CourseController;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 public class StudentView extends BaseView {
 
@@ -15,174 +16,218 @@ public class StudentView extends BaseView {
         boolean running = true;
         while (running) {
             printMenu(student);
-            String choice = reader.readLine();
+            String choice = reader.readLine().trim();
             switch (choice) {
-                case "1": viewCourses(student);    break;
-                case "2": registerCourse(student); break;
-                case "3": student.viewTranscript();break;
-                case "4": student.viewMarks();     break;
-                case "5": viewTeachers(student);   break;
-                case "6": rateTeacher(student);    break;
-                case "7": switchLang(student);     break;
-                case "8":
+                case "1" -> viewCourses(student);
+                case "2" -> registerCourseMenu(student);
+                case "3" -> viewTranscript(student);
+                case "4" -> viewMarks(student);
+                case "5" -> viewTeachers(student);
+                case "6" -> rateTeacherMenu(student);
+                case "7" -> switchLang(student); // Из BaseView
+                case "8" -> {
                     if (student instanceof GraduateStudent)
                         graduateMenu((GraduateStudent) student);
                     else System.out.println("Not available.");
-                    break;
-                case "0": running = false; break;
-                default:  System.out.println("Unknown option."); break;
+                }
+                case "0" -> running = false;
+                default  -> System.out.println("Unknown option.");
             }
         }
     }
 
-    // ─── Меню ─────────────────────────────────────────────────────────────────
-
     private static void printMenu(Student student) {
         String lang = student.getCurrentLanguage().name();
-        System.out.println("\n╔══════════════════════════════════════╗");
-        System.out.printf ("║  %-36s║%n", student.getName() + " [" + student.getFaculty() + "]");
-        System.out.println("╠══════════════════════════════════════╣");
-        option("1", student.getLanguageMessage("View available courses", "Доступные курсы", "Қол жетімді курстар"));
-        option("2", student.getLanguageMessage("Register for a course",  "Записаться на курс",  "Курсқа тіркелу"));
-        option("3", student.getLanguageMessage("View transcript",        "Транскрипт",          "Транскрипт"));
-        option("4", student.getLanguageMessage("View marks",             "Оценки",              "Бағалар"));
-        option("5", student.getLanguageMessage("View course teachers",   "Учителя курса",       "Курс оқытушылары"));
-        option("6", student.getLanguageMessage("Rate a teacher",         "Оценить учителя",     "Оқытушыны бағалау"));
-        option("7", student.getLanguageMessage("Language: ", "Язык: ", "Тіл: ") + lang);
-        if (student instanceof GraduateStudent)
-            option("8", student.getLanguageMessage("Diploma projects", "Дипломные работы", "Диплом жұмыстары"));
-        option("0", student.getLanguageMessage("Logout", "Выйти", "Шығу"));
-        System.out.println("╚══════════════════════════════════════╝");
-        System.out.print(student.getLanguageMessage("Choice: ", "Выбор: ", "Таңдау: "));
+        System.out.println("\n╔═══════════════════════════════════════╗");
+        System.out.printf ("║  %-37s║%n", student.getName() + " [" + student.getFaculty() + "]");
+        System.out.println("╠═══════════════════════════════════════╣");
+        option("1", student.getLanguageMessage("View Available Courses", "Доступные курсы", "Qol jetіmdі kurstar"));
+        option("2", student.getLanguageMessage("Register for a Course",  "Записаться на курс",  "Kursqa tіrkelu"));
+        option("3", student.getLanguageMessage("View Transcript",        "Транскрипт",          "Transcript"));
+        option("4", student.getLanguageMessage("View Marks",             "Оценки",              "Bağalar"));
+        option("5", student.getLanguageMessage("View Course Teachers",   "Учителя курса",       "Kurs oqytuşylary"));
+        option("6", student.getLanguageMessage("Rate a Teacher",         "Оценить учителя",     "Oqytuşyny bağalau"));
+        option("7", student.getLanguageMessage("Language: ", "Язык: ", "Tіl: ") + lang);
+        if (student instanceof GraduateStudent) {
+            option("8", student.getLanguageMessage("Diploma Projects", "Дипломные работы", "Diplom jumystary"));
+        }
+        option("0", student.getLanguageMessage("Logout", "Выйти", "Şyğu"));
+        System.out.println("╚═══════════════════════════════════════╝");
+        System.out.print(student.getLanguageMessage("Choice: ", "Выбор: ", "Tañdau: "));
     }
 
     private static void option(String key, String label) {
         System.out.printf("║  %s - %-33s║%n", key, label);
     }
 
-    // ─── Опции ────────────────────────────────────────────────────────────────
-
-    /** 1 — Список всех курсов */
     private static void viewCourses(Student student) {
-        System.out.println("\n" + student.getLanguageMessage(
-            "=== Available Courses ===", "=== Доступные курсы ===", "=== Қол жетімді курстар ==="));
+        System.out.println("\n" + student.getLanguageMessage("=== Available Courses ===", "=== Доступные курсы ===", "=== Qol jetіmdі kurstar ==="));
+        if (DBContext.getCourses().isEmpty()) {
+            System.out.println("No courses available.");
+            return;
+        }
         System.out.printf("  %-8s %-30s %s%n", "Code", "Name", "Credits");
         System.out.println("  " + "─".repeat(48));
-        for (Course c : DBContext.getCourses())
+        for (Course c : DBContext.getCourses()) {
             System.out.printf("  %-8s %-30s %d cr.%n", c.getCourseCode(), c.getName(), c.getCredits());
+        }
     }
 
-    /** 2 — Запись на курс */
-    private static void registerCourse(Student student) throws IOException {
+    private static void registerCourseMenu(Student student) throws IOException {
         viewCourses(student);
-        System.out.print("\n" + student.getLanguageMessage(
-            "Course code (0=cancel): ", "Код курса (0=отмена): ", "Курс коды (0=бас тарту): "));
+        System.out.print("\n" + student.getLanguageMessage("Course code (0=cancel): ", "Код курса (0=отмена): ", "Kurs kody (0=bas tartu): "));
         String code = reader.readLine().trim();
-        if ("0".equals(code)) return;
+        if ("0".equals(code) || code.isEmpty()) return;
 
-        Course found = DBContext.getCourses().stream()
-                .filter(c -> code.equalsIgnoreCase(c.getCourseCode()))
-                .findFirst().orElse(null);
-        if (found == null) { System.out.println("Course not found."); return; }
-
-        System.out.println("Semester:  1-FALL  2-SPRING  3-SUMMER");
-        System.out.print("Choice: ");
-        Semester sem;
-        switch (reader.readLine().trim()) {
-            case "1": sem = Semester.FALL;   break;
-            case "2": sem = Semester.SPRING; break;
-            case "3": sem = Semester.SUMMER; break;
-            default: System.out.println("Invalid semester."); return;
-        }
+        System.out.println("Semester: 1-FALL  2-SPRING  3-SUMMER");
+        System.out.print("> ");
+        Semester sem = switch (reader.readLine().trim()) {
+            case "1" -> Semester.FALL;
+            case "2" -> Semester.SPRING;
+            case "3" -> Semester.SUMMER;
+            default  -> null;
+        };
+        if (sem == null) { System.out.println("Invalid semester."); return; }
 
         try {
-            student.registerForCourse(found, sem);
-            DBContext.save();
+            // Передаем транзакцию в CourseController, ловим кастомный эксепшен!
+            CourseController.registerStudent(student, code, sem);
+            successMsg(student.getLanguageMessage("Successfully sent for approval!", "Успешно отправлено на одобрение менеджеру!", "Maqýldáýğa sáttі jіberіldі!"));
         } catch (CourseRegistrationException e) {
-            System.out.println("[" + student.getLanguageMessage("Error", "Ошибка", "Қате") +
-                "] " + e.getMessage());
+            System.out.println("[" + student.getLanguageMessage("Registration Error", "Ошибка регистрации", "Tіrkelu qatesі") + "] " + e.getMessage());
         }
     }
 
-    /** 5 — Учителя курса */
+    private static void viewTranscript(Student student) {
+        System.out.println("\n══════════════════════════════════════════");
+        System.out.println(student.getLanguageMessage("TRANSCRIPT", "ТРАНСКРИПТ", "TRANSCRIPT"));
+        System.out.println(student.getName() + "  |  ID: " + student.getStudentID() + "  |  " + student.getLanguageMessage("Year ", "Курс ", "Kurs ") + student.getYearOfStudy() + "  |  " + student.getFaculty());
+        System.out.println("──────────────────────────────────────────");
+
+        Map<Semester, List<Enrollment>> bySemester = student.getTranscriptData();
+        if (bySemester.isEmpty()) {
+            System.out.println(student.getLanguageMessage("No enrollments.", "Нет зачислений.", "Tіrkelu joq."));
+            return;
+        }
+
+        double totalWeightedGpa = 0; int totalCredits = 0;
+        for (Map.Entry<Semester, List<Enrollment>> entry : bySemester.entrySet()) {
+            System.out.println("\n  ── " + entry.getKey() + " ──");
+            for (Enrollment e : entry.getValue()) {
+                System.out.printf("  %-30s %d cr.%n", e.getCourse().getName(), e.getCourse().getCredits());
+                System.out.println("    " + (e.hasMark() ? e.getMark().toString() : student.getLanguageMessage("No mark yet.", "Оценка не выставлена.", "Bağa joq.")));
+                System.out.printf("    " + student.getLanguageMessage("Attendance: ", "Посещаемость: ", "Qatysu: ") + "%.0f%%%n", e.getAttendancePercent());
+                
+                if (e.hasMark()) {
+                    totalWeightedGpa += (e.getMark().convertToGpa() * e.getCourse().getCredits());
+                    totalCredits += e.getCourse().getCredits();
+                }
+            }
+        }
+        System.out.println("──────────────────────────────────────────");
+        if (totalCredits > 0) {
+            System.out.printf(student.getLanguageMessage("Total GPA: ", "Общий ГПА: ", "Jalpy GPA: ") + "%.2f%n", (totalWeightedGpa / totalCredits));
+        } else {
+            System.out.println(student.getLanguageMessage("GPA: N/A", "ГПА: Н/Д", "GPA: Joq"));
+        }
+    }
+
+    private static void viewMarks(Student student) {
+        System.out.println("\n" + student.getLanguageMessage("=== Marks ===", "=== Оценки ===", "=== Bağalar ==="));
+        if (student.getRegistrations().isEmpty()) {
+            System.out.println(student.getLanguageMessage("No enrollments.", "Нет зачислений.", "Tіrkelu joq.")); 
+            return;
+        }
+        for (Enrollment e : student.getRegistrations()) {
+            System.out.printf("[%-6s] %-28s  %s%n", e.getSemester(), e.getCourse().getName(), e.hasMark() ? e.getMark().toString() : student.getLanguageMessage("No mark yet", "Нет оценки", "Bağa joq"));
+        }
+    }
+
     private static void viewTeachers(Student student) throws IOException {
         List<Enrollment> regs = student.getRegistrations();
         if (regs.isEmpty()) { System.out.println("No enrollments."); return; }
-        printEnrollmentList(regs);
-        System.out.print("Number: ");
+        
+        System.out.println("\nYour courses:");
+        for (int i = 0; i < regs.size(); i++) {
+            System.out.printf("  %d. [%-6s] %s%n", i + 1, regs.get(i).getSemester(), regs.get(i).getCourse().getName());
+        }
+        System.out.print("Select number: ");
         try {
             int idx = Integer.parseInt(reader.readLine().trim()) - 1;
-            if (idx >= 0 && idx < regs.size())
-                student.viewCourseTeachers(regs.get(idx).getCourse());
+            if (idx >= 0 && idx < regs.size()) {
+                Course course = regs.get(idx).getCourse();
+                System.out.println("\n" + student.getLanguageMessage("Teachers of ", "Преподаватели курса ", "Oqytuşylar: ") + course.getName() + ":");
+                if (course.getTeachers().isEmpty()) {
+                    System.out.println("  None assigned.");
+                } else {
+                    course.getTeachers().forEach(t -> System.out.println("  - " + t.getName() + " (" + t.getType() + ")"));
+                }
+            }
         } catch (NumberFormatException e) { System.out.println("Invalid input."); }
     }
 
-    /** 6 — Оценить учителя */
-    private static void rateTeacher(Student student) throws IOException {
+    private static void rateTeacherMenu(Student student) throws IOException {
         List<Enrollment> regs = student.getRegistrations();
         if (regs.isEmpty()) { System.out.println("No enrollments."); return; }
-        printEnrollmentList(regs);
-        System.out.print("Course number: ");
-        int cIdx;
-        try { cIdx = Integer.parseInt(reader.readLine().trim()) - 1; }
-        catch (NumberFormatException e) { System.out.println("Invalid."); return; }
-        if (cIdx < 0 || cIdx >= regs.size()) { System.out.println("Invalid."); return; }
-
-        Course course = regs.get(cIdx).getCourse();
-        List<Teacher> teachers = course.getTeachers();
-        if (teachers.isEmpty()) { System.out.println("No teachers assigned."); return; }
-
-        for (int i = 0; i < teachers.size(); i++)
-            System.out.println((i + 1) + ". " + teachers.get(i).getName() + " (" + teachers.get(i).getType() + ")");
-        System.out.print("Teacher number: ");
-        int tIdx;
-        try { tIdx = Integer.parseInt(reader.readLine().trim()) - 1; }
-        catch (NumberFormatException e) { System.out.println("Invalid."); return; }
-        if (tIdx < 0 || tIdx >= teachers.size()) { System.out.println("Invalid."); return; }
-
-        System.out.print("Rating 1-5: ");
+        
+        for (int i = 0; i < regs.size(); i++) {
+            System.out.printf("  %d. %s%n", i + 1, regs.get(i).getCourse().getName());
+        }
+        System.out.print("Select course number: ");
         try {
+            int cIdx = Integer.parseInt(reader.readLine().trim()) - 1;
+            Course course = regs.get(cIdx).getCourse();
+            List<Teacher> teachers = course.getTeachers();
+            
+            if (teachers.isEmpty()) { System.out.println("No teachers assigned."); return; }
+
+            for (int i = 0; i < teachers.size(); i++) {
+                System.out.println((i + 1) + ". " + teachers.get(i).getName());
+            }
+            System.out.print("Select teacher number: ");
+            int tIdx = Integer.parseInt(reader.readLine().trim()) - 1;
+
+            System.out.print("Rating (1-5): ");
             int rating = Integer.parseInt(reader.readLine().trim());
-            student.rateTeacher(teachers.get(tIdx), course, rating);
-        } catch (NumberFormatException e) { System.out.println("Invalid."); }
+
+            boolean success = CourseController.rateTeacher(student, teachers.get(tIdx), course, rating);
+            if (success) {
+                successMsg(student.getLanguageMessage("Thank you for your rating!", "Спасибо за оценку!", "Bağalağanýñyz úşіn raqmet!"));
+            } else {
+                System.out.println("Rating failed. Invalid range or context.");
+            }
+        } catch (Exception e) { System.out.println("Invalid input."); }
     }
 
-    /** 7 — Сменить язык */
-    private static void switchLang(Student student) throws IOException {
-        System.out.print("1-ENG  2-RUS  3-KAZ > ");
-        switch (reader.readLine().trim()) {
-            case "1": student.switchLanguage(Language.ENG); break;
-            case "2": student.switchLanguage(Language.RUS); break;
-            case "3": student.switchLanguage(Language.KAZ); break;
-        }
-    }
-
-    /** 8 — Меню аспиранта */
     private static void graduateMenu(GraduateStudent gs) throws IOException {
-        System.out.println("\n=== Graduate: " + gs.getName() + " | " + gs.getType() + " ===");
-        System.out.println("Supervisor: " +
-                (gs.getResearchSupervisor() != null ? gs.getResearchSupervisor().getName() : "None"));
-        System.out.println("1 - View diploma projects");
-        System.out.println("2 - Add diploma project");
-        System.out.println("0 - Back");
-        System.out.print("Choice: ");
+        System.out.println("\n=== " + gs.getLanguageMessage("Graduate Workspace", "Кабинет послевузовского образования", "Postvuzdyq bіlіm beru") + " ===");
+        System.out.println("Supervisor: " + (gs.getResearchSupervisor() != null ? gs.getResearchSupervisor().getName() : "None"));
+        System.out.println("1 - " + gs.getLanguageMessage("View Diploma Projects", "Посмотреть дипломные работы", "Diplom jumystaryn kóru"));
+        System.out.println("2 - " + gs.getLanguageMessage("Add Diploma Project", "Добавить тему дипломной", "Diplom taqyrybyn qosu"));
+        System.out.print("> ");
+        
         switch (reader.readLine().trim()) {
-            case "1": gs.viewDiplomaProjects(); break;
-            case "2":
+            case "1" -> {
+                System.out.println("\n" + gs.getLanguageMessage("=== Diploma Projects ===", "=== Дипломные работы ===", "=== Diplom jumystary ==="));
+                List<String> projects = gs.getDiplomaProjects();
+                if (projects.isEmpty()) {
+                    System.out.println(gs.getLanguageMessage("None yet.", "Пока нет.", "Ázіrge joq."));
+                } else {
+                    for (int i = 0; i < projects.size(); i++) {
+                        System.out.println((i + 1) + ". " + projects.get(i));
+                    }
+                }
+            }
+            case "2" -> {
                 System.out.print("Title: ");
-                String t = reader.readLine().trim();
-                if (!t.isEmpty()) gs.addDiplomaProject(t);
-                break;
+                String title = reader.readLine().trim();
+                if (!title.isEmpty()) {
+                    gs.addDiplomaProjectLogic(title);
+                    successMsg(gs.getLanguageMessage("Project topic saved!", "Тема сохранена!", "Taqyryp saqtaldy!"));
+                    DBContext.save();
+                }
+            }
         }
-    }
-
-    // ─── Util ─────────────────────────────────────────────────────────────────
-
-    private static void printEnrollmentList(List<Enrollment> regs) {
-        System.out.println("\nYour courses:");
-        for (int i = 0; i < regs.size(); i++)
-            System.out.printf("  %d. [%-6s] %s%n",
-                    i + 1, regs.get(i).getSemester(), regs.get(i).getCourse().getName());
     }
 }
 
